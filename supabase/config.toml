@@ -1,1 +1,3 @@
-project_id = "rkpqrsfsdbzwflnjdrpr"
+# Set to your own Supabase project reference before running supabase commands.
+# Nothing reads this at runtime; the app uses VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY.
+project_id = ""
