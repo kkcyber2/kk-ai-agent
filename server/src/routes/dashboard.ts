@@ -1,5 +1,5 @@
 import express from 'express';
-import { supabase } from '../utils/database';
+import { getSupabase } from '../utils/database';
 
 const router = express.Router();
 
@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/stats', async (req, res) => {
   try {
     // Get message counts by platform and status
-    const { data: messageStats, error: messageError } = await supabase
+    const { data: messageStats, error: messageError } = await getSupabase()
       .from('messages')
       .select('platform, status')
       .order('created_at', { ascending: false })
@@ -29,7 +29,7 @@ router.get('/stats', async (req, res) => {
     });
 
     // Get recent activity
-    const { data: recentActivity, error: activityError } = await supabase
+    const { data: recentActivity, error: activityError } = await getSupabase()
       .from('interaction_logs')
       .select('*')
       .order('created_at', { ascending: false })
@@ -38,7 +38,7 @@ router.get('/stats', async (req, res) => {
     if (activityError) throw activityError;
 
     // Get sentiment analysis
-    const { data: sentimentData, error: sentimentError } = await supabase
+    const { data: sentimentData, error: sentimentError } = await getSupabase()
       .from('messages')
       .select('sentiment')
       .not('sentiment', 'is', null);
@@ -67,7 +67,7 @@ router.get('/logs', async (req, res) => {
   try {
     const { platform, action, limit = 50 } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('interaction_logs')
       .select('*')
       .order('created_at', { ascending: false })

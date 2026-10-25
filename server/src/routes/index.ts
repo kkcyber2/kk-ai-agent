@@ -22,9 +22,16 @@ export const setupRoutes = (app: express.Application) => {
     res.status(404).json({ error: 'Route not found' });
   });
 
-  // Error handler
-  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Something went wrong!' });
+  // Error handler. Honour the status the error already carries: body-parser
+  // raises a 400 for malformed JSON, and flattening that to 500 told clients
+  // their payload was fine and our server was broken.
+  app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    const status = Number(err?.status || err?.statusCode) || 500;
+    if (status >= 500) {
+      console.error(err?.stack || err);
+      res.status(status).json({ error: 'Something went wrong!' });
+      return;
+    }
+    res.status(status).json({ error: err?.message || 'Bad request' });
   });
 };

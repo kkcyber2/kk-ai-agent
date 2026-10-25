@@ -1,12 +1,12 @@
 import express from 'express';
-import { supabase } from '../utils/database';
+import { getSupabase } from '../utils/database';
 
 const router = express.Router();
 
 // Get connected accounts
 router.get('/accounts', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('social_accounts')
       .select('*')
       .order('created_at', { ascending: false });
@@ -25,7 +25,7 @@ router.post('/accounts', async (req, res) => {
   try {
     const { platform, account_id, account_name, access_token, refresh_token } = req.body;
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('social_accounts')
       .insert({
         platform,
@@ -52,7 +52,7 @@ router.put('/accounts/:id', async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('social_accounts')
       .update(updates)
       .eq('id', id)
@@ -73,7 +73,7 @@ router.delete('/accounts/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('social_accounts')
       .delete()
       .eq('id', id);
@@ -92,7 +92,7 @@ router.post('/accounts/:id/test', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data: account, error: accountError } = await supabase
+    const { data: account, error: accountError } = await getSupabase()
       .from('social_accounts')
       .select('*')
       .eq('id', id)

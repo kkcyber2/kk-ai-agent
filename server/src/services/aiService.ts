@@ -1,13 +1,28 @@
 import OpenAI from 'openai';
-import { supabase } from '../utils/database';
+import { getSupabase } from '../utils/database';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let client: OpenAI | null = null;
+
+/**
+ * Build the OpenAI client on first use.
+ *
+ * Instantiating it at import time threw when OPENAI_API_KEY was unset, which
+ * took down the whole app before any route could answer - including /api/health.
+ * Deferring it keeps the server bootable and lets callers degrade gracefully.
+ */
+const getClient = (): OpenAI => {
+  if (client) return client;
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not set (see server/.env.example)');
+  }
+  client = new OpenAI({ apiKey });
+  return client;
+};
 
 export const analyzeMessage = async (message: string): Promise<string> => {
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await getClient().chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
         {
@@ -36,7 +51,7 @@ export const generateResponse = async (
 ): Promise<string> => {
   try {
     // Get user preferences for this platform
-    const { data: settings } = await supabase
+    const { data: settings } = await getSupabase()
       .from('user_settings')
       .select('response_style, auto_approve')
       .eq('platform', platform)
@@ -52,7 +67,7 @@ export const generateResponse = async (
 
     systemPrompt += 'Keep responses concise and appropriate for the platform.';
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getClient().chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
         {
@@ -76,7 +91,7 @@ export const generateResponse = async (
 
 export const shouldAutoApprove = async (message: string, platform: string): Promise<boolean> => {
   try {
-    const { data: settings } = await supabase
+    const { data: settings } = await getSupabase()
       .from('user_settings')
       .select('auto_approve_keywords, auto_reject_keywords')
       .eq('platform', platform)

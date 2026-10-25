@@ -1,20 +1,20 @@
 import axios from 'axios';
-import { supabase } from '../../utils/database';
+import { getSupabase } from '../../utils/database';
 import { analyzeMessage } from '../aiService';
 
 const WHATSAPP_API_BASE = 'https://graph.facebook.com/v18.0';
 
 export const checkWhatsAppMessages = async () => {
   try {
-    const { data: accounts } = await supabase
+    const { data: accounts } = await getSupabase()
       .from('social_accounts')
       .select('*')
       .eq('platform', 'whatsapp');
 
-    for (const account of accounts) {
-      const response = await axios.get(`${WHATSAPP_API_BASE}/${account.account_id}/messages`, {
+    for (const account of accounts ?? []) {
+      const response = await axios.get(`${WHATSAPP_API_BASE}/${account?.account_id}/messages`, {
         headers: {
-          'Authorization': `Bearer ${account.access_token}`,
+          'Authorization': `Bearer ${account?.access_token}`,
         },
         params: {
           after: account.last_message_id || undefined,
@@ -26,7 +26,7 @@ export const checkWhatsAppMessages = async () => {
       for (const message of messages) {
         if (message.type === 'text') {
           // Check if message is already processed
-          const { data: existingMessage } = await supabase
+          const { data: existingMessage } = await getSupabase()
             .from('messages')
             .select('id')
             .eq('message_id', message.id)
@@ -35,9 +35,9 @@ export const checkWhatsAppMessages = async () => {
           if (!existingMessage) {
             const sentiment = await analyzeMessage(message.text.body);
 
-            await supabase.from('messages').insert({
+            await getSupabase().from('messages').insert({
               platform: 'whatsapp',
-              account_id: account.account_id,
+              account_id: account?.account_id,
               message_id: message.id,
               sender_id: message.from,
               sender_name: message.from,
@@ -47,13 +47,13 @@ export const checkWhatsAppMessages = async () => {
             });
 
             // Update last message ID
-            await supabase
+            await getSupabase()
               .from('social_accounts')
               .update({ last_message_id: message.id })
-              .eq('account_id', account.account_id);
+              .eq('account_id', account?.account_id);
 
             // Log interaction
-            await supabase.from('interaction_logs').insert({
+            await getSupabase().from('interaction_logs').insert({
               platform: 'whatsapp',
               action: 'message_received',
               details: { message_id: message.id, sender: message.from },
@@ -73,11 +73,15 @@ export const sendWhatsAppMessage = async (
   message: string
 ) => {
   try {
-    const { data: account } = await supabase
+    const { data: account } = await getSupabase()
       .from('social_accounts')
-      .select('access_token')
+      .select('access_token, account_id')
       .eq('account_id', accountId)
       .single();
+
+    if (!account?.access_token) {
+      throw new Error(`No WhatsApp credentials stored for account ${accountId}`);
+    }
 
     await axios.post(`${WHATSAPP_API_BASE}/${account.account_id}/messages`, {
       messaging_product: 'whatsapp',
@@ -86,13 +90,13 @@ export const sendWhatsAppMessage = async (
       text: { body: message },
     }, {
       headers: {
-        'Authorization': `Bearer ${account.access_token}`,
+        'Authorization': `Bearer ${account?.access_token}`,
         'Content-Type': 'application/json',
       },
     });
 
     // Log interaction
-    await supabase.from('interaction_logs').insert({
+    await getSupabase().from('interaction_logs').insert({
       platform: 'whatsapp',
       action: 'message_sent',
       details: { recipient_id: recipientId, message_length: message.length },

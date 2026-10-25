@@ -1,25 +1,25 @@
 import axios from 'axios';
-import { supabase } from '../../utils/database';
+import { getSupabase } from '../../utils/database';
 import { analyzeMessage } from '../aiService';
 
 const LINKEDIN_API_BASE = 'https://api.linkedin.com/v2';
 
 export const checkLinkedInMessages = async () => {
   try {
-    const { data: accounts } = await supabase
+    const { data: accounts } = await getSupabase()
       .from('social_accounts')
       .select('*')
       .eq('platform', 'linkedin');
 
-    for (const account of accounts) {
+    for (const account of accounts ?? []) {
       const response = await axios.get(`${LINKEDIN_API_BASE}/messages`, {
         headers: {
-          'Authorization': `Bearer ${account.access_token}`,
+          'Authorization': `Bearer ${account?.access_token}`,
           'X-Restli-Protocol-Version': '2.0.0',
         },
         params: {
           q: 'sender',
-          sender: account.account_id,
+          sender: account?.account_id,
           count: 50,
         },
       });
@@ -28,7 +28,7 @@ export const checkLinkedInMessages = async () => {
 
       for (const message of messages) {
         // Check if message is already processed
-        const { data: existingMessage } = await supabase
+        const { data: existingMessage } = await getSupabase()
           .from('messages')
           .select('id')
           .eq('message_id', message.$URN)
@@ -37,9 +37,9 @@ export const checkLinkedInMessages = async () => {
         if (!existingMessage) {
           const sentiment = await analyzeMessage(message.body);
 
-          await supabase.from('messages').insert({
+          await getSupabase().from('messages').insert({
             platform: 'linkedin',
-            account_id: account.account_id,
+            account_id: account?.account_id,
             message_id: message.$URN,
             sender_id: message.sender,
             sender_name: message.sender,
@@ -49,7 +49,7 @@ export const checkLinkedInMessages = async () => {
           });
 
           // Log interaction
-          await supabase.from('interaction_logs').insert({
+          await getSupabase().from('interaction_logs').insert({
             platform: 'linkedin',
             action: 'message_received',
             details: { message_id: message.$URN, sender: message.sender },
@@ -68,7 +68,7 @@ export const sendLinkedInMessage = async (
   message: string
 ) => {
   try {
-    const { data: account } = await supabase
+    const { data: account } = await getSupabase()
       .from('social_accounts')
       .select('access_token')
       .eq('account_id', accountId)
@@ -79,14 +79,14 @@ export const sendLinkedInMessage = async (
       body: message,
     }, {
       headers: {
-        'Authorization': `Bearer ${account.access_token}`,
+        'Authorization': `Bearer ${account?.access_token}`,
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0',
       },
     });
 
     // Log interaction
-    await supabase.from('interaction_logs').insert({
+    await getSupabase().from('interaction_logs').insert({
       platform: 'linkedin',
       action: 'message_sent',
       details: { recipient_id: recipientId, message_length: message.length },

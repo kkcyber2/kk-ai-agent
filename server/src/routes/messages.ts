@@ -1,5 +1,5 @@
 import express from 'express';
-import { supabase } from '../utils/database';
+import { getSupabase } from '../utils/database';
 import { generateResponse, shouldAutoApprove } from '../services/aiService';
 import { sendInstagramMessage } from '../services/platforms/instagram';
 import { sendFacebookMessage } from '../services/platforms/facebook';
@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
   try {
     const { platform, status, limit = 50, offset = 0 } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('messages')
       .select('*')
       .order('created_at', { ascending: false })
@@ -45,7 +45,7 @@ router.post('/:id/generate-response', async (req, res) => {
     const { id } = req.params;
     const { context } = req.body;
 
-    const { data: message, error: messageError } = await supabase
+    const { data: message, error: messageError } = await getSupabase()
       .from('messages')
       .select('*')
       .eq('id', id)
@@ -56,7 +56,7 @@ router.post('/:id/generate-response', async (req, res) => {
     const response = await generateResponse(message.content, message.platform, context);
 
     // Update message with generated response
-    await supabase
+    await getSupabase()
       .from('messages')
       .update({
         generated_response: response,
@@ -77,7 +77,7 @@ router.post('/:id/approve', async (req, res) => {
     const { id } = req.params;
     const { customResponse } = req.body;
 
-    const { data: message, error: messageError } = await supabase
+    const { data: message, error: messageError } = await getSupabase()
       .from('messages')
       .select('*')
       .eq('id', id)
@@ -109,7 +109,7 @@ router.post('/:id/approve', async (req, res) => {
     }
 
     // Update message status
-    await supabase
+    await getSupabase()
       .from('messages')
       .update({
         status: 'responded',
@@ -130,7 +130,7 @@ router.post('/:id/reject', async (req, res) => {
   try {
     const { id } = req.params;
 
-    await supabase
+    await getSupabase()
       .from('messages')
       .update({ status: 'rejected' })
       .eq('id', id);
@@ -168,7 +168,7 @@ router.post('/send', async (req, res) => {
     }
 
     // Log proactive message
-    await supabase.from('interaction_logs').insert({
+    await getSupabase().from('interaction_logs').insert({
       platform,
       action: 'message_sent_proactive',
       details: { recipient_id: recipientId, message_length: message.length },

@@ -1,26 +1,26 @@
 import axios from 'axios';
-import { supabase } from '../../utils/database';
+import { getSupabase } from '../../utils/database';
 import { analyzeMessage } from '../aiService';
 
 const TWITTER_API_BASE = 'https://api.twitter.com/2';
 
 export const checkTwitterMessages = async () => {
   try {
-    const { data: accounts } = await supabase
+    const { data: accounts } = await getSupabase()
       .from('social_accounts')
       .select('*')
       .eq('platform', 'twitter');
 
-    for (const account of accounts) {
+    for (const account of accounts ?? []) {
       // Twitter API v2 doesn't have direct DM access in free tier
       // This would require Twitter API v2 premium or enterprise
       // For now, we'll implement a placeholder that could be extended
-      console.log(`Twitter monitoring for account ${account.account_name} - requires premium API access`);
+      console.log(`Twitter monitoring for account ${account?.account_name} - requires premium API access`);
 
       // Placeholder for future implementation
       // const response = await axios.get(`${TWITTER_API_BASE}/dm_events`, {
       //   headers: {
-      //     'Authorization': `Bearer ${account.access_token}`,
+      //     'Authorization': `Bearer ${account?.access_token}`,
       //   },
       // });
     }
@@ -35,7 +35,7 @@ export const sendTwitterMessage = async (
   message: string
 ) => {
   try {
-    const { data: account } = await supabase
+    const { data: account } = await getSupabase()
       .from('social_accounts')
       .select('access_token')
       .eq('account_id', accountId)
@@ -56,13 +56,13 @@ export const sendTwitterMessage = async (
     //   },
     // }, {
     //   headers: {
-    //     'Authorization': `Bearer ${account.access_token}`,
+    //     'Authorization': `Bearer ${account?.access_token}`,
     //     'Content-Type': 'application/json',
     //   },
     // });
 
     // Log interaction
-    await supabase.from('interaction_logs').insert({
+    await getSupabase().from('interaction_logs').insert({
       platform: 'twitter',
       action: 'message_sent',
       details: { recipient_id: recipientId, message_length: message.length },

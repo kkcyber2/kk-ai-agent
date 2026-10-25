@@ -7,7 +7,7 @@ import { checkTwitterMessages } from './platforms/twitter';
 
 export const startMonitoring = () => {
   // Check for new messages every 2 minutes
-  cron.schedule('*/2 * * * *', async () => {
+  const task = cron.schedule('*/2 * * * *', async () => {
     console.log('Checking for new messages...');
 
     try {
@@ -23,5 +23,12 @@ export const startMonitoring = () => {
     }
   });
 
+  // Unref so a scheduled job never keeps a short-lived process (tests, CLI
+  // invocations) alive after its work is done.
+  // node-cron exposes unref at runtime but not in its type definitions.
+  const unrefable = task as unknown as { unref?: () => void };
+  if (typeof unrefable.unref === 'function') unrefable.unref();
+
   console.log('Message monitoring service started');
+  return task;
 };

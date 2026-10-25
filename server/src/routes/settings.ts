@@ -1,12 +1,12 @@
 import express from 'express';
-import { supabase } from '../utils/database';
+import { getSupabase } from '../utils/database';
 
 const router = express.Router();
 
 // Get user settings
 router.get('/', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('user_settings')
       .select('*')
       .order('platform');
@@ -26,7 +26,7 @@ router.put('/:platform', async (req, res) => {
     const { platform } = req.params;
     const updates = req.body;
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('user_settings')
       .upsert({
         platform,
@@ -47,7 +47,7 @@ router.put('/:platform', async (req, res) => {
 // Get notification settings
 router.get('/notifications', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('notification_settings')
       .select('*')
       .single();
@@ -73,7 +73,7 @@ router.put('/notifications', async (req, res) => {
   try {
     const updates = req.body;
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('notification_settings')
       .upsert(updates)
       .select()
