@@ -1,30 +1,20 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'sonner';
-import Dashboard from './pages/Dashboard';
-import Messages from './pages/Messages';
-import Accounts from './pages/Accounts';
-import Settings from './pages/Settings';
-import Layout from './components/Layout';
+import Index from './pages/Index';
+import NotFound from './pages/NotFound';
 
-const queryClient = new QueryClient();
-
+/**
+ * The portfolio is a single scrolling page; Index composes the sections.
+ * The dashboard pages were removed when the project became a portfolio, so
+ * their routes and the Layout wrapper they needed are gone too.
+ */
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/accounts" element={<Accounts />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </Layout>
-      </Router>
-      <Toaster />
-    </QueryClientProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
   );
 }
 
